@@ -1,4 +1,6 @@
 # di
+![Test Status](https://github.com/shyandsy/di/actions/workflows/go-test.yml/badge.svg)
+
 A reflection based (DI)Dependency Injector component for golang project.
 
 ## Features
