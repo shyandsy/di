@@ -68,7 +68,6 @@ func (c *container) ProvideAs(object interface{}, targetType interface{}) error 
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.singletonStore.Store(fullTypeName, object)
-	c.typeCache.Store(fullTypeName, s)
 
 	return nil
 }
