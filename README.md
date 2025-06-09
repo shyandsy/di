@@ -1,5 +1,6 @@
 # di
 ![Test Status](https://github.com/shyandsy/di/actions/workflows/go-test.yml/badge.svg)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A reflection based (DI)Dependency Injector component for golang project.
 
