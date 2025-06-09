@@ -1,2 +1,99 @@
 # di
-golang reflect based dependency injector
+A reflection based (DI)Dependency Injector component for golang project.
+
+## Features
+- [x] provide struct pointer as dependencies  
+- [x] provide struct as interface type
+- [x] find dependencies on struct fields with tag inject
+- [x] use dependencies as parameter on invoke method
+
+## Installation
+installation
+```
+go install github.com/shyandsy/di
+```
+
+## Usage
+please check unit test code
+
+create a container
+```go
+c := di.NewContainer()
+```
+
+provide struct and find dependency
+```go
+cat1 := &Cat{Name: "A"}
+dog1 := &Dog{Name: "B"}
+
+// Provide
+err := c.Provide(cat1)
+err = c.Provide(dog1)
+
+cat2 := &Cat{}
+dog2 := &Dog{}
+	
+// Find：cat2.Name = "A"
+err = c.Find(cat2)
+
+// Find：dog2.Name = "B"
+err = c.Find(dog2)
+```
+
+provide interface and find dependency
+```go
+cat0 := &Cat{Name: "azure"}
+cat1 := NewPetCat("cat")
+animalCat := NewAnimalCat("ccc")
+
+// Provide and ProvideAs
+err := c.Provide(cat0)
+err = c.ProvideAs(cat1, (*Pet)(nil))
+err = c.ProvideAs(animalCat, (*Animal)(nil))
+
+cat := &Cat{Name: ""}
+var P Pet
+var A Animal
+
+// Find struct: 
+// cat.Name: "azure"
+err = c.Find(cat)
+
+// Find interface
+// P.GetName(): "cat" 
+err = c.Find(&P) 
+
+// Find interface
+// A.GetName(): "ccc"
+err = c.Find(&A) 
+```
+
+resolve dependencies in struct field
+```go
+type temp struct {
+    Cat    *Cat   `inject:""`
+    Pet    Pet    `inject:""`
+    Animal Animal `inject:""`
+}
+
+c := NewContainer()
+
+// Provide dependency
+err := c.Provide(&Cat{Name: "A"})
+err = c.ProvideAs(&Cat{Name: "B"}, (*Pet)(nil))
+err = c.ProvideAs(NewPetCat("C"), (*Animal)(nil))
+	
+// Resolve struct field
+s := &temp{}
+err = c.Resolve(s)
+assert.Nil(t, err)
+
+/* 
+s.Cat.GetName(): "A"
+s.Pet.GetName(): "B"
+s.Animal.GetName(): "C"
+*/
+```
+
+## Example
+please check unit test
