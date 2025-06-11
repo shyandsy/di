@@ -28,3 +28,39 @@ func TestFindRecursive(t *testing.T) {
 	assert.Equal(t, s.Pet.GetName(), "B")
 	assert.Equal(t, s.Animal.GetName(), "C")
 }
+
+func TestFindOnNil(t *testing.T) {
+	c := NewContainer()
+
+	err := c.Provide(&Cat{Name: "A"})
+	assert.Nil(t, err)
+
+	err = c.Find(nil)
+	assert.NotNil(t, err)
+}
+
+func TestFindOnNonPointer(t *testing.T) {
+	c := NewContainer()
+
+	err := c.Provide(&Cat{Name: "A"})
+	assert.Nil(t, err)
+
+	s := Cat{}
+	err = c.Find(s)
+	assert.NotNil(t, err)
+}
+
+func TestFindOnNonPointerStructOrPointerInterface(t *testing.T) {
+	c := NewContainer()
+
+	err := c.Provide(&Cat{Name: "A"})
+	assert.Nil(t, err)
+
+	a := 3
+	err = c.Find(&a)
+	assert.NotNil(t, err)
+
+	b := func() {}
+	err = c.Find(&b)
+	assert.NotNil(t, err)
+}
