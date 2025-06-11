@@ -17,30 +17,44 @@ func (c *container) Invoke(f interface{}) error {
 		return errors.New("f must be a function")
 	}
 
+	var args []reflect.Value
 	if tp.NumIn() > 0 {
-		args := []reflect.Value{}
 		for i := 0; i < tp.NumIn(); i++ {
 			inType := tp.In(i)
+
+			if (inType.Kind() != reflect.Pointer || inType.Elem().Kind() != reflect.Struct) && inType.Kind() != reflect.Interface {
+				return errors.New("parameter must be interface or *struct")
+			}
+
 			s, err := c.parseStruct(inType)
 			if err != nil {
 				return err
 			}
+
 			dep, ok := c.singletonStore.Load(s.FullType())
-			if !ok {
-				return errors.New("dependency not found: " + s.FullType())
+			if ok {
+				arg := reflect.ValueOf(dep)
+				if inType.Kind() == reflect.Struct || inType.Kind() == reflect.Interface {
+					arg = arg.Elem()
+				}
+				args = append(args, arg)
+				continue
+			} else {
+				if inType.Kind() == reflect.Pointer {
+					ptrValue := reflect.New(inType.Elem()).Interface()
+					if err = c.Resolve(ptrValue); err != nil {
+						return err
+					}
+					args = append(args, reflect.ValueOf(ptrValue))
+					continue
+				}
 			}
 
-			if inType.Kind() == reflect.Struct || inType.Kind() == reflect.Interface {
-				args = append(args, reflect.ValueOf(dep).Elem())
-			} else if inType.Kind() == reflect.Pointer {
-				args = append(args, reflect.ValueOf(dep))
-			}
-
+			return errors.New("dependency not found: " + s.FullType())
 		}
-		val.Call(args)
-	} else {
-		val.Call(nil)
 	}
+
+	val.Call(args)
 
 	return nil
 }

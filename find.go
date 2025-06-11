@@ -30,19 +30,23 @@ func (c *container) Find(object interface{}) error {
 	}
 
 	target, ok := c.singletonStore.Load(s.FullType())
-	if !ok {
-		return errors.New("object not found in container")
-	}
-	targetVal := reflect.ValueOf(target)
+	if ok {
+		targetVal := reflect.ValueOf(target)
 
-	if !objectVal.Elem().CanSet() {
-		return errors.New("object cannot be set")
-	}
+		if !objectVal.Elem().CanSet() {
+			return errors.New("object cannot be set")
+		}
 
-	if objectTp.Elem().Kind() == reflect.Interface {
-		objectVal.Elem().Set(targetVal)
-	} else if objectTp.Elem().Kind() == reflect.Struct {
+		//if objectTp.Elem().Kind() == reflect.Struct {
+		//	targetVal = targetVal.Elem()
+		//}
 		objectVal.Elem().Set(targetVal.Elem())
+	} else {
+		ptrValue := reflect.New(objectTp.Elem()).Interface()
+		if err = c.Resolve(ptrValue); err != nil {
+			return err
+		}
+		objectVal.Elem().Set(reflect.ValueOf(ptrValue).Elem())
 	}
 
 	return nil
