@@ -1,8 +1,9 @@
 # di
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 ![Test Status](https://github.com/shyandsy/di/actions/workflows/go-test.yml/badge.svg)
 [![Go Report Card](https://goreportcard.com/badge/github.com/shyandsy/di)](https://goreportcard.com/report/github.com/shyandsy/di)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![codecov](https://codecov.io/gh/shyandsy/di/graph/badge.svg?token=W8Z0SWZJG3)](https://codecov.io/gh/shyandsy/di)
+![CodeQL](https://github.com/shyandsy/di/workflows/CodeQL/badge.svg)
 
 A reflection based (DI)Dependency Injector component for golang project.
 
