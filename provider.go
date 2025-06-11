@@ -13,6 +13,10 @@ import (
 func (c *container) Provide(object interface{}) error {
 	tp := reflect.TypeOf(object)
 
+	if object == nil {
+		return errors.New("object cannot be nil")
+	}
+
 	if tp.Kind() != reflect.Pointer || tp.Elem().Kind() != reflect.Struct {
 		return errors.New("object must be pointer of struct")
 	}

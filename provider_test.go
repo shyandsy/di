@@ -81,3 +81,24 @@ func TestProvideAsDuplicated(t *testing.T) {
 	assert.NotEqual(t, p.GetName(), pet1.GetName())
 	assert.Equal(t, p.GetName(), pet2.GetName())
 }
+
+func TestProvideNonPointStruct(t *testing.T) {
+	c := NewContainer()
+
+	a := 3
+
+	err := c.Provide(nil)
+	assert.NotNil(t, err)
+
+	err = c.Provide(&a)
+	assert.NotNil(t, err)
+
+	err = c.Provide(&a)
+	assert.NotNil(t, err)
+
+	err = c.ProvideAs(nil, nil)
+	assert.NotNil(t, err)
+
+	err = c.ProvideAs(&a, (*Pet)(nil))
+	assert.NotNil(t, err)
+}
