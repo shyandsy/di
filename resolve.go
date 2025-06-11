@@ -23,10 +23,12 @@ func (c *container) Resolve(object interface{}) error {
 		if _, ok := tpField.Tag.Lookup("inject"); !ok {
 			continue
 		}
+
 		if tpField.Type.Kind() != reflect.Interface &&
 			(tpField.Type.Kind() != reflect.Pointer || tpField.Type.Elem().Kind() != reflect.Struct) {
-			continue
+			return errors.New("inject only for interface or *struct")
 		}
+
 		if !tpField.IsExported() {
 			continue
 		}
@@ -35,17 +37,28 @@ func (c *container) Resolve(object interface{}) error {
 		if !field.IsValid() || !field.CanSet() {
 			continue
 		}
+
 		s, err := c.parseStruct(tpField.Type)
 		if err != nil {
 			return err
 		}
 
 		dep, ok := c.singletonStore.Load(s.FullType())
-		if !ok {
+		if ok {
+			field.Set(reflect.ValueOf(dep))
 			continue
 		}
 
-		field.Set(reflect.ValueOf(dep))
+		if tpField.Type.Kind() == reflect.Pointer && tpField.Type.Elem().Kind() == reflect.Struct {
+			ptrValue := reflect.New(tpField.Type.Elem()).Interface()
+			if err = c.Resolve(ptrValue); err != nil {
+				return err
+			}
+			field.Set(reflect.ValueOf(ptrValue))
+			continue
+		}
+
+		return errors.New("dependency not found: " + s.FullType())
 	}
 
 	return nil

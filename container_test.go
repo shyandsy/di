@@ -12,12 +12,22 @@ type Dog struct {
 	Name string
 }
 
-func (d Dog) GetName() string {
-	return d.Name
-}
-
 type Cat struct {
 	Name string
+}
+
+type temp struct {
+	Cat    *Cat   `inject:""`
+	Pet    Pet    `inject:""`
+	Animal Animal `inject:""`
+}
+
+type temp2 struct {
+	Temp *temp `inject:""`
+}
+
+func (d Dog) GetName() string {
+	return d.Name
 }
 
 func (d Cat) GetName() string {
