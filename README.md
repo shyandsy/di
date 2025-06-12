@@ -3,7 +3,7 @@
 ![Test Status](https://github.com/shyandsy/di/actions/workflows/go-test.yml/badge.svg)
 [![Go Report Card](https://goreportcard.com/badge/github.com/shyandsy/di)](https://goreportcard.com/report/github.com/shyandsy/di)
 [![codecov](https://codecov.io/gh/shyandsy/di/graph/badge.svg?token=W8Z0SWZJG3)](https://codecov.io/gh/shyandsy/di)
-![CodeQL](https://github.com/shyandsy/di/workflows/CodeQL/badge.svg)
+[![CodeQL](https://github.com/shyandsy/di/actions/workflows/codeql.yml/badge.svg?branch=main&event=push)](https://github.com/shyandsy/di/actions/workflows/codeql.yml) 
 
 A reflection based (DI)Dependency Injector component for golang project.
 
