@@ -43,7 +43,17 @@ func (c *container) Resolve(object interface{}) error {
 
 		dep, ok := c.singletonStore.Load(s.FullType())
 		if ok {
-			field.Set(reflect.ValueOf(dep))
+			depVal := reflect.ValueOf(dep)
+			if depVal.Kind() == reflect.Func {
+				objs, err := c.Invoke(dep)
+				if err != nil {
+					return err
+				}
+				field.Set(objs[0])
+			} else {
+				field.Set(reflect.ValueOf(dep))
+			}
+
 			continue
 		}
 

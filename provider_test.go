@@ -128,3 +128,33 @@ func TestProvideAsWrongImplementation(t *testing.T) {
 	err := c.ProvideAs(&temp{}, (*Pet)(nil))
 	assert.NotNil(t, err)
 }
+
+func TestProvideFunction(t *testing.T) {
+	f1 := func() {}
+	f2 := func() Cat { return Cat{} }
+	f3 := func() *Cat { return nil }
+	f4 := func() (*Cat, error) { return nil, nil }
+	f5 := func() Pet { return &Cat{} }
+
+	c := NewContainer()
+
+	// f should return interface
+	err := c.Provide(f1)
+	assert.NotNil(t, err)
+
+	// f should return interface
+	err = c.Provide(f2)
+	assert.NotNil(t, err)
+
+	// f should return interface
+	err = c.Provide(f3)
+	assert.NotNil(t, err)
+
+	// f should return exactly 1 value
+	err = c.Provide(f4)
+	assert.NotNil(t, err)
+
+	// correct
+	err = c.Provide(f5)
+	assert.Nil(t, err)
+}

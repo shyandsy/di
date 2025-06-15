@@ -7,16 +7,18 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func PrintCat(cat Cat) {
+func PrintCat(cat Cat) string {
 	fmt.Println(cat.Name)
+	return cat.Name
 }
 
 func PrintCatWithInvalidParameter(cat *Cat, a int) {
 	fmt.Println(cat.Name)
 }
 
-func PrintCatPointer(cat *Cat) {
+func PrintCatPointer(cat *Cat) string {
 	fmt.Println(cat.Name)
+	return cat.Name
 }
 
 func PrintCatAndAnimal(cat1 *Cat, cat2 *Cat, animal Animal) {
@@ -38,16 +40,17 @@ func TestInvoke(t *testing.T) {
 	err = c.ProvideAs(animal, (*Animal)(nil))
 	assert.Nil(t, err)
 
-	err = c.Invoke(PrintCat)
+	_, err = c.Invoke(PrintCat)
 	assert.NotNil(t, err)
 
-	err = c.Invoke(PrintCatWithInvalidParameter)
+	_, err = c.Invoke(PrintCatWithInvalidParameter)
 	assert.NotNil(t, err)
 
-	err = c.Invoke(PrintCatPointer)
+	name, err := c.Invoke(PrintCatPointer)
 	assert.Nil(t, err)
+	assert.True(t, name[0].String() == "A")
 
-	err = c.Invoke(PrintCatAndAnimal)
+	_, err = c.Invoke(PrintCatAndAnimal)
 	assert.Nil(t, err)
 }
 
@@ -65,14 +68,14 @@ func TestInvokeRecursive(t *testing.T) {
 	err = c.ProvideAs(animal, (*Animal)(nil))
 	assert.Nil(t, err)
 
-	err = c.Invoke(PrintCatAndAnimalRecursive)
+	_, err = c.Invoke(PrintCatAndAnimalRecursive)
 	assert.Nil(t, err)
 }
 
 func TestInvokeOnNil(t *testing.T) {
 	c := NewContainer()
 
-	err := c.Invoke(nil)
+	_, err := c.Invoke(nil)
 	assert.NotNil(t, err)
 }
 
@@ -80,11 +83,11 @@ func TestInvokeOnNonFunction(t *testing.T) {
 	c := NewContainer()
 
 	// struct
-	err := c.Invoke(&Cat{})
+	_, err := c.Invoke(&Cat{})
 	assert.NotNil(t, err)
 
 	// interface
 	var a Animal
-	err = c.Invoke(&a)
+	_, err = c.Invoke(&a)
 	assert.NotNil(t, err)
 }

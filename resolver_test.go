@@ -177,3 +177,23 @@ func TestResolveStructFieldNotFound(t *testing.T) {
 	assert.True(t, s.Cat != nil)
 	assert.True(t, s.Cat.Name == "")
 }
+
+func TestResolveByFunction(t *testing.T) {
+	f := func() Pet { return &Cat{Name: "A"} }
+
+	type temp struct {
+		Cat Pet `inject:""`
+	}
+
+	te := temp{}
+
+	c := NewContainer()
+
+	// f should return interface
+	err := c.Provide(f)
+	assert.Nil(t, err)
+
+	err = c.Resolve(&te)
+	assert.Nil(t, err)
+	assert.True(t, te.Cat.GetName() == "A")
+}

@@ -1,6 +1,7 @@
 package di
 
 import (
+	"reflect"
 	"sync"
 )
 
@@ -9,7 +10,7 @@ type Container interface {
 	ProvideAs(object interface{}, tp interface{}) error
 	Find(object interface{}) error
 	Resolve(object interface{}) error
-	Invoke(f interface{}) error
+	Invoke(f interface{}) ([]reflect.Value, error)
 }
 
 type container struct {

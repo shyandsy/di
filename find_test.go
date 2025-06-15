@@ -120,3 +120,19 @@ func TestFindUnwritableField(t *testing.T) {
 	err = c.Find(&te)
 	assert.NotNil(t, err)
 }
+
+func TestProvideFindByFunction(t *testing.T) {
+	f := func() Pet { return &Cat{Name: "A"} }
+
+	var p Pet
+
+	c := NewContainer()
+
+	// f should return interface
+	err := c.Provide(f)
+	assert.Nil(t, err)
+
+	err = c.Find(&p)
+	assert.Nil(t, err)
+	assert.True(t, p.GetName() == "A")
+}
