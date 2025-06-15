@@ -37,6 +37,14 @@ func (c *container) Find(object interface{}) error {
 			return errors.New("object cannot be set")
 		}
 
+		if targetVal.Kind() == reflect.Func {
+			objs, err := c.Invoke(target)
+			if err != nil {
+				return err
+			}
+			targetVal = objs[0]
+		}
+
 		objectVal.Elem().Set(targetVal.Elem())
 	} else if objectTp.Elem().Kind() == reflect.Struct {
 		ptrValue := reflect.New(objectTp.Elem()).Interface()

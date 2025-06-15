@@ -6,15 +6,15 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (c *container) Invoke(f interface{}) error {
+func (c *container) Invoke(f interface{}) ([]reflect.Value, error) {
 	tp := reflect.TypeOf(f)
 	val := reflect.ValueOf(f)
 
 	if f == nil {
-		return errors.New("f cannot be nil")
+		return nil, errors.New("f cannot be nil")
 	}
 	if tp.Kind() != reflect.Func {
-		return errors.New("f must be a function")
+		return nil, errors.New("f must be a function")
 	}
 
 	var args []reflect.Value
@@ -23,12 +23,12 @@ func (c *container) Invoke(f interface{}) error {
 			inType := tp.In(i)
 
 			if (inType.Kind() != reflect.Pointer || inType.Elem().Kind() != reflect.Struct) && inType.Kind() != reflect.Interface {
-				return errors.New("parameter must be interface or *struct")
+				return nil, errors.New("parameter must be interface or *struct")
 			}
 
 			s, err := c.parseStruct(inType)
 			if err != nil {
-				return err
+				return nil, err
 			}
 
 			dep, ok := c.singletonStore.Load(s.FullType())
@@ -43,18 +43,18 @@ func (c *container) Invoke(f interface{}) error {
 				if inType.Kind() == reflect.Pointer {
 					ptrValue := reflect.New(inType.Elem()).Interface()
 					if err = c.Resolve(ptrValue); err != nil {
-						return err
+						return nil, err
 					}
 					args = append(args, reflect.ValueOf(ptrValue))
 					continue
 				}
 			}
 
-			return errors.New("dependency not found: " + s.FullType())
+			return nil, errors.New("dependency not found: " + s.FullType())
 		}
 	}
 
-	val.Call(args)
+	values := val.Call(args)
 
-	return nil
+	return values, nil
 }
