@@ -37,16 +37,15 @@ func (c *container) Find(object interface{}) error {
 			return errors.New("object cannot be set")
 		}
 
-		//if objectTp.Elem().Kind() == reflect.Struct {
-		//	targetVal = targetVal.Elem()
-		//}
 		objectVal.Elem().Set(targetVal.Elem())
-	} else {
+	} else if objectTp.Elem().Kind() == reflect.Struct {
 		ptrValue := reflect.New(objectTp.Elem()).Interface()
 		if err = c.Resolve(ptrValue); err != nil {
 			return err
 		}
 		objectVal.Elem().Set(reflect.ValueOf(ptrValue).Elem())
+	} else {
+		return errors.New("dependency not found: " + s.FullType())
 	}
 
 	return nil
