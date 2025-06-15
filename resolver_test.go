@@ -124,3 +124,56 @@ func TestResolveRecursive(t *testing.T) {
 	assert.Equal(t, s.Temp.Pet.GetName(), "B")
 	assert.Equal(t, s.Temp.Animal.GetName(), "C")
 }
+
+func TestResolveOnNil(t *testing.T) {
+	c := NewContainer()
+
+	err := c.Resolve(nil)
+	assert.NotNil(t, err)
+}
+
+func TestResolveOnNonPointerStruct(t *testing.T) {
+	c := NewContainer()
+
+	a := 3
+	cat := Cat{Name: "A"}
+
+	err := c.Resolve(&a)
+	assert.NotNil(t, err)
+
+	err = c.Resolve(cat)
+	assert.NotNil(t, err)
+}
+
+func TestResolveStructFieldCannotSet(t *testing.T) {
+	type temp struct {
+		cat *Cat `inject:""`
+	}
+
+	c := NewContainer()
+
+	err := c.Provide(&Cat{Name: "A"})
+	assert.Nil(t, err)
+
+	s := &temp{}
+	err = c.Resolve(s)
+	assert.NotNil(t, err)
+	assert.True(t, s.cat == nil)
+}
+
+// TODO: TestResolveStructFieldNotFound, pending on question
+func TestResolveStructFieldNotFound(t *testing.T) {
+	type temp struct {
+		Cat *Cat `inject:""`
+	}
+
+	c := NewContainer()
+
+	s := &temp{}
+
+	// pending: DI created a cat object automatically, it that make sense?
+	err := c.Resolve(s)
+	assert.Nil(t, err)
+	assert.True(t, s.Cat != nil)
+	assert.True(t, s.Cat.Name == "")
+}

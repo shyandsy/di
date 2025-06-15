@@ -8,7 +8,7 @@ import (
 
 func (c *container) Resolve(object interface{}) error {
 	objectTp := reflect.TypeOf(object)
-	objectVal := reflect.ValueOf(object).Elem()
+	objectVal := reflect.ValueOf(object)
 
 	if object == nil {
 		return errors.New("object cannot be nil")
@@ -16,6 +16,8 @@ func (c *container) Resolve(object interface{}) error {
 	if objectTp.Kind() != reflect.Pointer || objectTp.Elem().Kind() != reflect.Struct {
 		return errors.New("object must be a pointer of struct")
 	}
+
+	objectVal = objectVal.Elem()
 
 	element := objectTp.Elem()
 	for i := 0; i < element.NumField(); i++ {
@@ -26,16 +28,12 @@ func (c *container) Resolve(object interface{}) error {
 
 		if tpField.Type.Kind() != reflect.Interface &&
 			(tpField.Type.Kind() != reflect.Pointer || tpField.Type.Elem().Kind() != reflect.Struct) {
-			return errors.New("inject only for interface or *struct")
-		}
-
-		if !tpField.IsExported() {
-			continue
+			return errors.New("inject field only for interface or *struct")
 		}
 
 		field := objectVal.FieldByName(tpField.Name)
 		if !field.IsValid() || !field.CanSet() {
-			continue
+			return errors.New("inject field must CanSet")
 		}
 
 		s, err := c.parseStruct(tpField.Type)

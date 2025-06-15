@@ -36,6 +36,9 @@ func (c *container) ProvideAs(object interface{}, targetType interface{}) error 
 	if object == nil {
 		return errors.New("object cannot be nil")
 	}
+	if targetTp == nil {
+		return errors.New("target cannot be nil")
+	}
 	if reflect.ValueOf(object).IsNil() {
 		return errors.New("object value cannot be nil")
 	}
@@ -49,16 +52,8 @@ func (c *container) ProvideAs(object interface{}, targetType interface{}) error 
 	target := targetTp.Elem()
 
 	if targetTp.Elem().Kind() == reflect.Interface {
-		if !objectTp.Implements(targetTp.Elem()) {
-			return errors.New("object must implement target interface")
-		}
-
 		if !objectTp.Implements(target) {
 			return errors.New("object must implement target interface")
-		}
-	} else {
-		if targetTp.Elem().PkgPath() != objectTp.Elem().PkgPath() || targetTp.Elem().Name() != objectTp.Elem().Name() {
-			return errors.New("target struct type must be same as object struct type")
 		}
 	}
 
