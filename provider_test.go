@@ -102,3 +102,29 @@ func TestProvideNonPointStruct(t *testing.T) {
 	err = c.ProvideAs(&a, (*Pet)(nil))
 	assert.NotNil(t, err)
 }
+
+func TestProvideAsNonValue(t *testing.T) {
+	c := NewContainer()
+
+	// target neither pointer of struct nor pointer of interface
+	err := c.ProvideAs((*Cat)(nil), (*Pet)(nil))
+	assert.NotNil(t, err)
+
+	err = c.ProvideAs((*Cat)(nil), nil)
+	assert.NotNil(t, err)
+}
+
+func TestProvideAsTargetNonPointInterface(t *testing.T) {
+	c := NewContainer()
+
+	err := c.ProvideAs(&Cat{Name: "A"}, Cat{Name: "A"})
+	assert.NotNil(t, err)
+}
+
+func TestProvideAsWrongImplementation(t *testing.T) {
+	c := NewContainer()
+
+	// not implement the interface
+	err := c.ProvideAs(&temp{}, (*Pet)(nil))
+	assert.NotNil(t, err)
+}

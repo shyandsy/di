@@ -105,3 +105,18 @@ func TestFindOnNonPointerStructOrPointerInterface(t *testing.T) {
 	err = c.Find(&b)
 	assert.NotNil(t, err)
 }
+
+func TestFindUnwritableField(t *testing.T) {
+	c := NewContainer()
+
+	type temp struct {
+		cat *Cat `inject:""`
+	}
+
+	err := c.Provide(&Cat{Name: "A"})
+	assert.Nil(t, err)
+
+	te := temp{}
+	err = c.Find(&te)
+	assert.NotNil(t, err)
+}

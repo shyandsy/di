@@ -68,3 +68,23 @@ func TestInvokeRecursive(t *testing.T) {
 	err = c.Invoke(PrintCatAndAnimalRecursive)
 	assert.Nil(t, err)
 }
+
+func TestInvokeOnNil(t *testing.T) {
+	c := NewContainer()
+
+	err := c.Invoke(nil)
+	assert.NotNil(t, err)
+}
+
+func TestInvokeOnNonFunction(t *testing.T) {
+	c := NewContainer()
+
+	// struct
+	err := c.Invoke(&Cat{})
+	assert.NotNil(t, err)
+
+	// interface
+	var a Animal
+	err = c.Invoke(&a)
+	assert.NotNil(t, err)
+}
