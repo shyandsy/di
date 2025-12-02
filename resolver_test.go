@@ -8,7 +8,7 @@ import (
 
 func TestResolveIgnoreField(t *testing.T) {
 	type temp struct {
-		Cat *Cat // ignore: no inject tag
+		Cat *Cat
 	}
 
 	c := NewContainer()
@@ -29,7 +29,7 @@ func TestResolveIgnoreField(t *testing.T) {
 
 func TestResolveWrongInjectTagUse(t *testing.T) {
 	type temp struct {
-		Cat Cat `inject:""` // error: inject can use on interface or *struct
+		Cat Cat `inject:""`
 	}
 
 	c := NewContainer()
@@ -75,14 +75,16 @@ func TestResolve(t *testing.T) {
 	assert.Equal(t, s.Animal.GetName(), "C")
 }
 
-func TestInvalidInjectType(t *testing.T) {
+func TestResolveTypeMismatch(t *testing.T) {
 	type temp struct {
-		Age int `inject:""`
+		Cat *Cat `inject:""`
 	}
 
 	c := NewContainer()
 
 	err := c.Provide(&Cat{Name: "A"})
+	assert.Nil(t, err)
+	err = c.Provide(&temp{})
 	assert.Nil(t, err)
 	err = c.ProvideAs(NewPetDog("B"), (*Pet)(nil))
 	assert.Nil(t, err)
@@ -110,6 +112,8 @@ func TestResolveRecursive(t *testing.T) {
 	err = c.ProvideAs(NewPetDog("B"), (*Pet)(nil))
 	assert.Nil(t, err)
 	err = c.ProvideAs(NewAnimalCat("C"), (*Animal)(nil))
+	assert.Nil(t, err)
+	err = c.Provide(&temp{})
 	assert.Nil(t, err)
 
 	s := &temp2{}
@@ -161,7 +165,6 @@ func TestResolveStructFieldCannotSet(t *testing.T) {
 	assert.True(t, s.cat == nil)
 }
 
-// TODO: TestResolveStructFieldNotFound, pending on question
 func TestResolveStructFieldNotFound(t *testing.T) {
 	type temp struct {
 		Cat *Cat `inject:""`
@@ -171,7 +174,6 @@ func TestResolveStructFieldNotFound(t *testing.T) {
 
 	s := &temp{}
 
-	// pending: DI created a cat object automatically, it that make sense?
 	err := c.Resolve(s)
 	assert.Nil(t, err)
 	assert.True(t, s.Cat != nil)
@@ -179,21 +181,46 @@ func TestResolveStructFieldNotFound(t *testing.T) {
 }
 
 func TestResolveByFunction(t *testing.T) {
-	f := func() Pet { return &Cat{Name: "A"} }
+	f1 := func() Pet { return &Cat{Name: "A"} }
+	f2 := func() *Cat { return &Cat{Name: "B"} }
 
 	type temp struct {
-		Cat Pet `inject:""`
+		Cat1 Pet  `inject:""`
+		Cat2 *Cat `inject:""`
 	}
 
 	te := temp{}
 
 	c := NewContainer()
 
-	// f should return interface
-	err := c.Provide(f)
+	err := c.Provide(f1)
+	assert.Nil(t, err)
+
+	err = c.Provide(f2)
 	assert.Nil(t, err)
 
 	err = c.Resolve(&te)
 	assert.Nil(t, err)
-	assert.True(t, te.Cat.GetName() == "A")
+	assert.True(t, te.Cat1.GetName() == "A")
+	assert.True(t, te.Cat2.GetName() == "B")
+}
+
+func TestResolveStructPointerFromProvide(t *testing.T) {
+	type target struct {
+		MyCat *Cat `inject:""`
+	}
+
+	c := NewContainer()
+
+	cat := &Cat{Name: "TestCat"}
+	err := c.Provide(cat)
+	assert.Nil(t, err)
+
+	tgt := &target{}
+	err = c.Resolve(tgt)
+	assert.Nil(t, err)
+
+	assert.NotNil(t, tgt.MyCat)
+	assert.Equal(t, "TestCat", tgt.MyCat.GetName())
+	assert.Equal(t, "TestCat", tgt.MyCat.Name)
 }

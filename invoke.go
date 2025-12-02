@@ -34,22 +34,55 @@ func (c *container) Invoke(f interface{}) ([]reflect.Value, error) {
 			dep, ok := c.singletonStore.Load(s.FullType())
 			if ok {
 				arg := reflect.ValueOf(dep)
-				if inType.Kind() == reflect.Struct || inType.Kind() == reflect.Interface {
-					arg = arg.Elem()
-				}
-				args = append(args, arg)
-				continue
-			} else {
-				if inType.Kind() == reflect.Pointer {
-					ptrValue := reflect.New(inType.Elem()).Interface()
-					if err = c.Resolve(ptrValue); err != nil {
+
+				if arg.Kind() == reflect.Func {
+					objs, err := c.Invoke(dep)
+					if err != nil {
 						return nil, err
 					}
-					args = append(args, reflect.ValueOf(ptrValue))
+					arg = objs[0]
+				}
+
+				if inType.Kind() == reflect.Pointer && inType.Elem().Kind() == reflect.Struct {
+					if arg.Type().AssignableTo(inType) {
+						hasInjectFields := false
+						structType := inType.Elem()
+						for i := 0; i < structType.NumField(); i++ {
+							if _, ok := structType.Field(i).Tag.Lookup("inject"); ok {
+								hasInjectFields = true
+								break
+							}
+						}
+
+						if hasInjectFields {
+							ptrValue := reflect.New(inType.Elem()).Interface()
+							if err = c.Resolve(ptrValue); err != nil {
+								return nil, err
+							}
+							args = append(args, reflect.ValueOf(ptrValue))
+						} else {
+							args = append(args, arg)
+						}
+					} else {
+						ptrValue := reflect.New(inType.Elem()).Interface()
+						if err = c.Resolve(ptrValue); err != nil {
+							return nil, err
+						}
+						args = append(args, reflect.ValueOf(ptrValue))
+					}
 					continue
 				}
-			}
 
+				if inType.Kind() == reflect.Interface {
+					args = append(args, arg)
+				} else if inType.Kind() == reflect.Struct {
+					arg = arg.Elem()
+					args = append(args, arg)
+				} else {
+					args = append(args, arg)
+				}
+				continue
+			}
 			return nil, errors.New("dependency not found: " + s.FullType())
 		}
 	}

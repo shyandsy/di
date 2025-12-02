@@ -11,20 +11,16 @@ func TestFindInterface(t *testing.T) {
 
 	var s Animal
 
-	//err := c.ProvideAs(&Cat{Name: "A"}, (*Animal)(nil))
 	err := c.Provide(&Cat{Name: "A"})
 	assert.Nil(t, err)
 
-	// not found
 	err = c.Find(&s)
 	assert.NotNil(t, err)
 	assert.Nil(t, s)
 
-	// inject Animal
 	err = c.ProvideAs(&Cat{Name: "A"}, (*Animal)(nil))
 	assert.Nil(t, err)
 
-	// found
 	err = c.Find(&s)
 	assert.Nil(t, err)
 	assert.True(t, s != nil)
@@ -47,7 +43,7 @@ func TestFindPointerStruct(t *testing.T) {
 	assert.Equal(t, a.GetName(), "A")
 }
 
-func TestFindRecursive(t *testing.T) {
+func TestFindWithInjectFields(t *testing.T) {
 	c := NewContainer()
 
 	err := c.Provide(&Cat{Name: "A"})
@@ -55,6 +51,8 @@ func TestFindRecursive(t *testing.T) {
 	err = c.ProvideAs(NewPetCat("B"), (*Pet)(nil))
 	assert.Nil(t, err)
 	err = c.ProvideAs(NewAnimalCat("C"), (*Animal)(nil))
+	assert.Nil(t, err)
+	err = c.Provide(&temp{})
 	assert.Nil(t, err)
 
 	s := &temp{}
@@ -122,17 +120,52 @@ func TestFindUnwritableField(t *testing.T) {
 }
 
 func TestProvideFindByFunction(t *testing.T) {
-	f := func() Pet { return &Cat{Name: "A"} }
+	type unknow struct {
+		UnknowDog *Dog `inject:""`
+	}
+	f1 := func() Pet { return &Cat{Name: "A"} }
+	f2 := func() *Cat { return &Cat{Name: "B"} }
+	f3 := func(a *unknow) Animal { return NewAnimalCat("C") }
 
+	cat := Cat{}
 	var p Pet
+	var a Animal
 
 	c := NewContainer()
 
-	// f should return interface
-	err := c.Provide(f)
+	err := c.Provide(f1)
+	assert.Nil(t, err)
+	err = c.Provide(f2)
+	assert.Nil(t, err)
+	err = c.Provide(f3)
 	assert.Nil(t, err)
 
 	err = c.Find(&p)
 	assert.Nil(t, err)
 	assert.True(t, p.GetName() == "A")
+
+	err = c.Find(&cat)
+	assert.Nil(t, err)
+	assert.True(t, cat.Name == "B")
+
+	err = c.Find(&a)
+	assert.NotNil(t, err)
+	assert.True(t, a == nil)
+}
+
+func TestFindPointerType(t *testing.T) {
+	c := NewContainer()
+
+	cat := &Cat{Name: "TestCat"}
+	err := c.Provide(cat)
+	assert.Nil(t, err)
+
+	var sqlDB *Cat
+	err = c.Find(&sqlDB)
+	assert.Nil(t, err)
+
+	assert.NotNil(t, sqlDB)
+	assert.Equal(t, "TestCat", sqlDB.GetName())
+	assert.Equal(t, "TestCat", sqlDB.Name)
+	assert.True(t, sqlDB == cat)
 }

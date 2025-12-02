@@ -12,7 +12,6 @@ func TestProvide(t *testing.T) {
 	cat1 := &Cat{Name: "A"}
 	dog1 := &Dog{Name: "B"}
 
-	// step1
 	err := c.Provide(cat1)
 	assert.Nil(t, err)
 	err = c.Provide(dog1)
@@ -21,7 +20,6 @@ func TestProvide(t *testing.T) {
 	cat2 := &Cat{}
 	dog2 := &Dog{}
 
-	// check
 	err = c.Find(cat2)
 	assert.Nil(t, err)
 	assert.Equal(t, cat1.Name, cat2.Name)
@@ -45,7 +43,6 @@ func TestProvideAsInterface(t *testing.T) {
 	err = c.ProvideAs(animalCat, (*Animal)(nil))
 	assert.Nil(t, err)
 
-	// check
 	cat := &Cat{Name: ""}
 	var P Pet
 	var A Animal
@@ -62,7 +59,7 @@ func TestProvideAsInterface(t *testing.T) {
 	assert.Equal(t, animalCat.GetName(), A.GetName())
 }
 
-func TestProvideAsDuplicated(t *testing.T) {
+func TestProvideAsOverride(t *testing.T) {
 	c := NewContainer()
 
 	pet1 := NewPetCat("aaa")
@@ -82,7 +79,7 @@ func TestProvideAsDuplicated(t *testing.T) {
 	assert.Equal(t, p.GetName(), pet2.GetName())
 }
 
-func TestProvideNonPointStruct(t *testing.T) {
+func TestProvideInvalidType(t *testing.T) {
 	c := NewContainer()
 
 	a := 3
@@ -106,7 +103,6 @@ func TestProvideNonPointStruct(t *testing.T) {
 func TestProvideAsNonValue(t *testing.T) {
 	c := NewContainer()
 
-	// target neither pointer of struct nor pointer of interface
 	err := c.ProvideAs((*Cat)(nil), (*Pet)(nil))
 	assert.NotNil(t, err)
 
@@ -132,29 +128,35 @@ func TestProvideAsWrongImplementation(t *testing.T) {
 func TestProvideFunction(t *testing.T) {
 	f1 := func() {}
 	f2 := func() Cat { return Cat{} }
-	f3 := func() *Cat { return nil }
-	f4 := func() (*Cat, error) { return nil, nil }
-	f5 := func() Pet { return &Cat{} }
+	f3 := func() (*Cat, error) { return nil, nil }
+	f4 := func() *Cat { return &Cat{Name: "A"} }
+	f5 := func() Pet { return &Cat{Name: "B"} }
 
 	c := NewContainer()
 
-	// f should return interface
 	err := c.Provide(f1)
 	assert.NotNil(t, err)
 
-	// f should return interface
 	err = c.Provide(f2)
 	assert.NotNil(t, err)
 
-	// f should return interface
 	err = c.Provide(f3)
 	assert.NotNil(t, err)
 
-	// f should return exactly 1 value
 	err = c.Provide(f4)
-	assert.NotNil(t, err)
+	assert.Nil(t, err)
 
-	// correct
+	cat := Cat{}
+	err = c.Find(&cat)
+	assert.Nil(t, err)
+	assert.True(t, cat.Name == "A")
+
 	err = c.Provide(f5)
 	assert.Nil(t, err)
+
+	var pet Pet
+	err = c.Find(&pet)
+	assert.Nil(t, err)
+	assert.True(t, pet.GetName() == "B")
+
 }
