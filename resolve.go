@@ -42,31 +42,59 @@ func (c *container) Resolve(object interface{}) error {
 		}
 
 		dep, ok := c.singletonStore.Load(s.FullType())
-		if ok {
-			depVal := reflect.ValueOf(dep)
-			if depVal.Kind() == reflect.Func {
-				objs, err := c.Invoke(dep)
-				if err != nil {
-					return err
-				}
-				field.Set(objs[0])
+		if !ok {
+			if tpField.Type.Kind() == reflect.Pointer && tpField.Type.Elem().Kind() == reflect.Struct {
+				newInstance := reflect.New(tpField.Type.Elem()).Interface()
+				dep = newInstance
 			} else {
-				field.Set(reflect.ValueOf(dep))
+				return errors.New("dependency not found: " + s.FullType())
 			}
-
-			continue
 		}
 
-		if tpField.Type.Kind() == reflect.Pointer && tpField.Type.Elem().Kind() == reflect.Struct {
-			ptrValue := reflect.New(tpField.Type.Elem()).Interface()
-			if err = c.Resolve(ptrValue); err != nil {
+		depVal := reflect.ValueOf(dep)
+		if depVal.Kind() == reflect.Func {
+			objs, err := c.Invoke(dep)
+			if err != nil {
 				return err
 			}
-			field.Set(reflect.ValueOf(ptrValue))
-			continue
-		}
+			field.Set(objs[0])
+		} else if field.Type().Kind() == reflect.Pointer && field.Type().Elem().Kind() == reflect.Struct {
+			depVal := reflect.ValueOf(dep)
 
-		return errors.New("dependency not found: " + s.FullType())
+			if field.IsNil() {
+				newTemp := reflect.New(field.Type().Elem())
+				field.Set(newTemp)
+			}
+
+			if depVal.Type().AssignableTo(field.Type()) {
+				field.Set(depVal)
+			} else {
+				fieldElem := field.Elem()
+				depElem := depVal.Elem()
+				if fieldElem.Type().Kind() == reflect.Struct && depElem.Type().Kind() == reflect.Struct {
+					for i := 0; i < fieldElem.NumField(); i++ {
+						fieldField := fieldElem.Field(i)
+						fieldType := fieldElem.Type().Field(i)
+						if _, hasInject := fieldType.Tag.Lookup("inject"); hasInject {
+							continue
+						}
+						if fieldField.CanSet() {
+							depField := depElem.FieldByName(fieldType.Name)
+							if depField.IsValid() && depField.Type().AssignableTo(fieldField.Type()) {
+								fieldField.Set(depField)
+							}
+						}
+					}
+				}
+			}
+
+			if err = c.Resolve(field.Interface()); err != nil {
+				return err
+			}
+
+		} else if field.Type().Kind() == reflect.Interface {
+			field.Set(reflect.ValueOf(dep))
+		}
 	}
 
 	return nil

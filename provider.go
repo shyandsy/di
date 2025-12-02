@@ -6,10 +6,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Provide
-// Parameters:
-//
-//	object		- dependency pointer. must be a pointer of struct, and it must be not nil
 func (c *container) Provide(object interface{}) error {
 	tp := reflect.TypeOf(object)
 
@@ -23,22 +19,23 @@ func (c *container) Provide(object interface{}) error {
 		if tp.NumOut() != 1 {
 			return errors.New("the function for dependency creation should have exactly 1 return value")
 		}
-		if tp.Out(0).Kind() != reflect.Interface {
-			return errors.New("the function for dependency creation should return an interface")
+		out := tp.Out(0)
+
+		if out.Kind() != reflect.Interface && (out.Kind() != reflect.Pointer || out.Elem().Kind() != reflect.Struct) {
+			return errors.New("the function for dependency creation should return an interface or pointer of struct")
 		}
-		ptrValue := reflect.New(tp.Out(0)).Interface()
-		return c.ProvideAs(object, ptrValue)
+
+		if out.Kind() != reflect.Interface {
+			out = out.Elem()
+		}
+
+		return c.ProvideAs(object, reflect.New(out).Interface())
 	}
 
 	return errors.New("object must be pointer of struct")
 
 }
 
-// ProvideAs
-// Parameters:
-//
-//	object		- dependency pointer. must be a pointer of struct, and it must be not nil
-//	tp			- specific the target type of the dependency, it must be a pointer of interface
 func (c *container) ProvideAs(object interface{}, targetType interface{}) error {
 	objectTp := reflect.TypeOf(object)
 	targetTp := reflect.TypeOf(targetType)
