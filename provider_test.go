@@ -160,3 +160,26 @@ func TestProvideFunction(t *testing.T) {
 	assert.True(t, pet.GetName() == "B")
 
 }
+
+// TestProvideAsStructValueReturnsErrorNotPanic 回归:object 传**结构体值**(而非指针)时,
+// ProvideAs 必须返回可读 error,绝不 panic。Cat 用值接收者实现 Pet,故 Cat{} 是个"满足接口的
+// 结构体值"——正是"provider 助手误返回 foo{} 而非 &foo{}"的场景(参见 aurora StaticPolicy/
+// StaticLimits 曾踩的坑)。修复前:IsNil 先于种类校验执行,对结构体值抛
+// "reflect: call of reflect.Value.IsNil on struct Value" 硬 panic(注册即崩、无编译错)。
+// 修复后:种类校验先行,返回下面这个 error。本测试能正常跑完(不 panic)本身即验证点。
+func TestProvideAsStructValueReturnsErrorNotPanic(t *testing.T) {
+	c := NewContainer()
+
+	err := c.ProvideAs(Cat{Name: "value-cat"}, (*Pet)(nil))
+	assert.NotNil(t, err, "结构体值应返回 error,不能 panic")
+	assert.Contains(t, err.Error(), "object must be pointer of struct or function")
+
+	// 指针仍正常(未回归)。
+	err = c.ProvideAs(&Cat{Name: "ptr-cat"}, (*Pet)(nil))
+	assert.Nil(t, err)
+
+	// typed-nil 指针仍被 IsNil 捕获(种类校验通过后 IsNil 依然生效)。
+	err = c.ProvideAs((*Cat)(nil), (*Pet)(nil))
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "object value cannot be nil")
+}
