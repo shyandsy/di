@@ -119,40 +119,6 @@ func TestFindUnwritableField(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestProvideFindByFunction(t *testing.T) {
-	type unknow struct {
-		UnknowDog *Dog `inject:""`
-	}
-	f1 := func() Pet { return &Cat{Name: "A"} }
-	f2 := func() *Cat { return &Cat{Name: "B"} }
-	f3 := func(a *unknow) Animal { return NewAnimalCat("C") }
-
-	cat := Cat{}
-	var p Pet
-	var a Animal
-
-	c := NewContainer()
-
-	err := c.Provide(f1)
-	assert.Nil(t, err)
-	err = c.Provide(f2)
-	assert.Nil(t, err)
-	err = c.Provide(f3)
-	assert.Nil(t, err)
-
-	err = c.Find(&p)
-	assert.Nil(t, err)
-	assert.True(t, p.GetName() == "A")
-
-	err = c.Find(&cat)
-	assert.Nil(t, err)
-	assert.True(t, cat.Name == "B")
-
-	err = c.Find(&a)
-	assert.NotNil(t, err)
-	assert.True(t, a == nil)
-}
-
 func TestFindPointerType(t *testing.T) {
 	c := NewContainer()
 

@@ -125,6 +125,10 @@ func TestProvideAsWrongImplementation(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
+// TestProvideFunction 现在验证:Provide/ProvideAs 一律拒绝函数。
+// 过去把 func 传进去会被静默注册成"每次解析新建一个"的瞬时工厂,调用方却以为拿到的是
+// 共享单例 —— 这是个静默多实例坑。现在收敛为"只接受单例实例(结构体指针)",函数一律报错。
+// 瞬时工厂如将来确需,另开显式 API(如 ProvideFactory),不走 Provide。
 func TestProvideFunction(t *testing.T) {
 	f1 := func() {}
 	f2 := func() Cat { return Cat{} }
@@ -134,31 +138,30 @@ func TestProvideFunction(t *testing.T) {
 
 	c := NewContainer()
 
-	err := c.Provide(f1)
+	// 所有函数形态(无返回/值返回/多返回/*struct 返回/接口返回)一律被 Provide 拒绝。
+	for _, f := range []interface{}{f1, f2, f3, f4, f5} {
+		err := c.Provide(f)
+		assert.NotNil(t, err)
+		assert.Contains(t, err.Error(), "functions are not supported")
+	}
+
+	// ProvideAs 同样拒绝函数——接口目标 与 *struct 目标都拒(拒绝发生在任何目标类型处理之前)。
+	err := c.ProvideAs(f5, (*Pet)(nil))
 	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "functions are not supported")
 
-	err = c.Provide(f2)
+	err = c.ProvideAs(f4, (*Cat)(nil))
 	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "functions are not supported")
 
-	err = c.Provide(f3)
-	assert.NotNil(t, err)
-
-	err = c.Provide(f4)
-	assert.Nil(t, err)
-
+	// 被拒绝后 store 里不应有任何东西:Find 必然 not found。
 	cat := Cat{}
 	err = c.Find(&cat)
-	assert.Nil(t, err)
-	assert.True(t, cat.Name == "A")
-
-	err = c.Provide(f5)
-	assert.Nil(t, err)
+	assert.NotNil(t, err)
 
 	var pet Pet
 	err = c.Find(&pet)
-	assert.Nil(t, err)
-	assert.True(t, pet.GetName() == "B")
-
+	assert.NotNil(t, err)
 }
 
 // TestProvideAsStructValueReturnsErrorNotPanic 回归:object 传**结构体值**(而非指针)时,
@@ -172,7 +175,7 @@ func TestProvideAsStructValueReturnsErrorNotPanic(t *testing.T) {
 
 	err := c.ProvideAs(Cat{Name: "value-cat"}, (*Pet)(nil))
 	assert.NotNil(t, err, "结构体值应返回 error,不能 panic")
-	assert.Contains(t, err.Error(), "object must be pointer of struct or function")
+	assert.Contains(t, err.Error(), "object must be pointer of struct")
 
 	// 指针仍正常(未回归)。
 	err = c.ProvideAs(&Cat{Name: "ptr-cat"}, (*Pet)(nil))
@@ -182,4 +185,28 @@ func TestProvideAsStructValueReturnsErrorNotPanic(t *testing.T) {
 	err = c.ProvideAs((*Cat)(nil), (*Pet)(nil))
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "object value cannot be nil")
+}
+
+// TestSingletonSameInstanceAcrossResolutions 锁定核心语义:注册一个实例后,多次解析返回的
+// 永远是**同一个实例**(单例),不是每次新建/副本。去掉瞬时函数路径后必须保证这点——否则像
+// *gorm.DB / redis 这种若被每次解析重建,连接池就不再共享(每请求新连接)。本测试防回归。
+func TestSingletonSameInstanceAcrossResolutions(t *testing.T) {
+	c := NewContainer()
+
+	cat := &Cat{Name: "singleton"}
+	assert.Nil(t, c.Provide(cat))
+
+	var p1, p2 *Cat
+	assert.Nil(t, c.Find(&p1))
+	assert.Nil(t, c.Find(&p2))
+	assert.Same(t, cat, p1) // 解析回来的就是注册进去的那个指针,非副本/新建
+	assert.Same(t, p1, p2)  // 多次解析恒为同一实例
+
+	// 接口解析同理:两次解析是同一底层实例。
+	pet := NewPetCat("x")
+	assert.Nil(t, c.ProvideAs(pet, (*Pet)(nil)))
+	var a, b Pet
+	assert.Nil(t, c.Find(&a))
+	assert.Nil(t, c.Find(&b))
+	assert.True(t, a == b)
 }

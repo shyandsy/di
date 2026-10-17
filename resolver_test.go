@@ -180,31 +180,6 @@ func TestResolveStructFieldNotFound(t *testing.T) {
 	assert.True(t, s.Cat.Name == "")
 }
 
-func TestResolveByFunction(t *testing.T) {
-	f1 := func() Pet { return &Cat{Name: "A"} }
-	f2 := func() *Cat { return &Cat{Name: "B"} }
-
-	type temp struct {
-		Cat1 Pet  `inject:""`
-		Cat2 *Cat `inject:""`
-	}
-
-	te := temp{}
-
-	c := NewContainer()
-
-	err := c.Provide(f1)
-	assert.Nil(t, err)
-
-	err = c.Provide(f2)
-	assert.Nil(t, err)
-
-	err = c.Resolve(&te)
-	assert.Nil(t, err)
-	assert.True(t, te.Cat1.GetName() == "A")
-	assert.True(t, te.Cat2.GetName() == "B")
-}
-
 func TestResolveStructPointerFromProvide(t *testing.T) {
 	type target struct {
 		MyCat *Cat `inject:""`
